@@ -108,10 +108,13 @@ class DrawBest(object):
         self.rankRating = self.playerRating - self.musicRating
         if self.b50:
             self.playerRating = 0
+            self.sdRating = 0
+            self.dxRating = 0
             for sd in sdBest:
-                self.playerRating += computeRa(sd.ds, sd.achievement, True)
+                self.sdRating += computeRa(sd.ds, sd.achievement, True)
             for dx in dxBest:
-                self.playerRating += computeRa(dx.ds, dx.achievement, True)
+                self.dxRating += computeRa(dx.ds, dx.achievement, True)
+            self.playerRating = self.sdRating + self.dxRating
         self.pic_dir = os.path.join(static, 'mai', 'pic')
         self.cover_dir = os.path.join(static, 'mai', 'cover')
         self.img = Image.open(os.path.join(self.pic_dir, 'UI_TTR_BG_Base_Plus.png')).convert('RGBA')
@@ -367,7 +370,7 @@ class DrawBest(object):
         shougouImg = Image.open(os.path.join(self.pic_dir, 'UI_CMN_Shougou_Rainbow.png')).convert('RGBA')
         shougouDraw = ImageDraw.Draw(shougouImg)
         font2 = ImageFont.truetype(adobe, 14, encoding='utf-8')
-        playCountInfo = f'底分: {self.musicRating} + 段位分: {self.rankRating}' if not self.b50 else 'Simulation of Splash PLUS Rating'
+        playCountInfo = f'底分: {self.musicRating} + 段位分: {self.rankRating}' if not self.b50 else f'{self.sdRating} + {self.dxRating} = {self.playerRating}'
         shougouImgW, shougouImgH = shougouImg.size
         playCountInfoW, playCountInfoH = shougouDraw.textsize(playCountInfo, font2)
         textPos = ((shougouImgW - playCountInfoW - font2.getoffset(playCountInfo)[0]) / 2, 5)
