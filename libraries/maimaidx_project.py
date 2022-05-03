@@ -11,6 +11,7 @@ from .. import arcades, arcades_json
 
 import time, json, traceback
 
+SONGS_PER_PAGE = 25
 level_labels = ['绿', '黄', '红', '紫', '白']
 realAchievementList = {}
 for acc in [i / 10 for i in range(10, 151)]:
@@ -83,7 +84,7 @@ BREAK: {chart['notes'][4]}
             music = mai.total_list.by_id(name)
             msg = f'''{music["id"]}. {music["title"]}
 {MessageSegment.image(f"https://www.diving-fish.com/covers/{music['id']}.jpg")}
-艺术家: {music['basic_info']['artist']}
+艺术家: {music['basic_info']['artist']} 
 分类: {music['basic_info']['genre']}
 BPM: {music['basic_info']['bpm']}
 版本: {music['basic_info']['from']}
@@ -446,7 +447,6 @@ async def level_achievement_list_data(payload: dict, match: Match, nickname: Opt
     for song in data['verlist']:
         if song['level'] == match.group(1):
             song_list.append(song)
-    SONGS_PER_PAGE = 25
     if match.group(2): page = max(min(int(match.group(2)), len(song_list) // SONGS_PER_PAGE + 1), 1)
     else: page = 1
 
@@ -643,16 +643,17 @@ def arcade_person_data(match: Match, gid: int, nickname: str) -> Union[str, bool
                 break
     if result:
         msg = ''
+        num = match.group(3) if match.group(3).isdigit() else 1
         if match.group(2) in ['设置', '设定', '＝', '=']:
-            msg = modify('modify', 'person_set', {'name': result['name'], 'person': match.group(3),
+            msg = modify('modify', 'person_set', {'name': result['name'], 'person': num,
                                                   'time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
                                                   'by': nickname})
         elif match.group(2) in ['增加', '添加', '加', '＋', '+']:
-            msg = modify('modify', 'person_add', {'name': result['name'], 'person': match.group(3),
+            msg = modify('modify', 'person_add', {'name': result['name'], 'person': num,
                                                   'time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
                                                   'by': nickname})
         elif match.group(2) in ['减少', '降低', '减', '－', '-']:
-            msg = modify('modify', 'person_minus', {'name': result['name'], 'person': match.group(3),
+            msg = modify('modify', 'person_minus', {'name': result['name'], 'person': num,
                                                     'time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
                                                     'by': nickname})
         if msg and '一次最多改变' in msg:

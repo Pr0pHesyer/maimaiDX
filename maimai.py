@@ -19,13 +19,17 @@ sv_help = '''
 今日mai,今日舞萌,今日运势 查看今天的舞萌运势
 XXXmaimaiXXX什么 随机一首歌
 随个[dx/标准][绿黄红紫白]<难度> 随机一首指定条件的乐曲
-查歌<乐曲标题的一部分> 查询符合条件的乐曲
+[查歌/search]<乐曲标题的一部分> 查询符合条件的乐曲
 [绿黄红紫白]id <歌曲编号> 查询乐曲信息或谱面信息
 <歌曲别名>是什么歌 查询乐曲别名对应的乐曲
 <id/歌曲别称>有什么别称 查询乐曲对应的别称 识别id，歌名和别名
 <id/歌曲别称> [添加|增加|增添|删除|删去|去除]别称 <歌曲别名> 添加或删除歌曲别名
-定数查歌 <定数>  查询定数对应的乐曲
-定数查歌 <定数下限> <定数上限>
+[定数查歌/search base] <定数>  查询定数对应的乐曲
+[定数查歌/search base] <定数下限> <定数上限>
+[bpm查歌/search bpm] <bpm>  查询bpm对应的乐曲
+[bpm查歌/search bpm] <bpm下限> <bpm上限> (<页数>)
+[曲师查歌/search artist] <曲师名字的一部分> (<页数>)  查询曲师对应的乐曲
+[谱师查歌/search charter] <谱师名字的一部分> (<页数>)  查询名字对应的乐曲
 分数线 <难度+歌曲id> <分数线> 详情请输入“分数线 帮助”查看
 开启/关闭mai猜歌 开关猜歌功能
 猜歌 顾名思义，识别id，歌名和别名
@@ -66,7 +70,7 @@ def song_level(ds1: float, ds2: float, stats1: str = None, stats2: str = None) -
             stats1 = stats1.title()
         for music in sorted(music_data, key=lambda i: int(i['id'])):
             for i in music.diff:
-                if music.stats[i].difficulty == stats1:
+                if music.stats[i].difficulty.lower() == stats1.lower():
                     result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i], music.stats[i].difficulty))
     else:
         for music in sorted(music_data, key=lambda i: int(i['id'])):
@@ -110,11 +114,100 @@ async def search_dx_song_level(bot: NoneBot, ev: CQEvent):
             result = song_level(float(args[0]), float(args[0]), str(args[1]), str(args[2]))
     else:
         result = song_level(float(args[0]), float(args[1]), str(args[2]), str(args[3]))
+    if not result:
+        await bot.finish(ev, f'没有找到这样的乐曲。', at_sender=True)
     if len(result) >= 60:
         await bot.finish(ev, f'结果过多（{len(result)} 条），请缩小搜索范围', at_sender=True)
     msg = ''
     for i in result:
         msg += f'{i[0]}. {i[1]} {i[3]} {i[4]}({i[2]}) {i[5]}\n'
+    await bot.finish(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
+
+@sv.on_prefix(['bpm查歌', 'search bpm'])
+async def search_dx_song_bpm(bot: NoneBot, ev: CQEvent):
+    gid = ev.group_id
+    if gid in guess_dict:
+        await bot.finish(ev, '本群正在猜歌，不要作弊哦~', at_sender=True)
+    args = ev.message.extract_plain_text().strip().split()
+    page = 1
+    if len(args) == 1:
+        music_data = mai.total_list.filter(bpm=int(args[0]))
+    elif len(args) == 2:
+        music_data = mai.total_list.filter(bpm=(int(args[0]), int(args[1])))
+    elif len(args) == 3:
+        music_data = mai.total_list.filter(bpm=(int(args[0]), int(args[1])))
+        page = int(args[2])
+    else:
+        await bot.finish(ev, '命令格式为：\nbpm查歌 <bpm>\nbpm查歌 <bpm下限> <bpm上限> (<页数>)', at_sender=True)
+    if not music_data:
+        await bot.finish(ev, f'没有找到这样的乐曲。', at_sender=True)
+    msg = ''
+    page = max(min(page, len(music_data) // SONGS_PER_PAGE + 1), 1)
+    for i, m in enumerate(sorted(music_data, key=lambda i: int(i.bpm))):
+        if (page - 1) * SONGS_PER_PAGE <= i < page * SONGS_PER_PAGE:
+            msg += f'No.{i + 1} {m.id}. {m.title} bpm {m.bpm}\n'
+    msg += f'第{page}页，共{len(music_data) // SONGS_PER_PAGE + 1}页'
+    await bot.finish(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
+
+@sv.on_prefix(['曲师查歌', 'search artist'])
+async def search_dx_song_artist(bot: NoneBot, ev: CQEvent):
+    gid = ev.group_id
+    if gid in guess_dict:
+        await bot.finish(ev, '本群正在猜歌，不要作弊哦~', at_sender=True)
+    args: List[str] = ev.message.extract_plain_text().strip().split()
+    page = 1
+    if len(args) == 1:
+        name: str = args[0]
+    elif len(args) == 2:
+        name: str = args[0]
+        if args[1].isdigit():
+            page = int(args[1])
+        else:
+            bot.finish(ev, '命令格式为：曲师查歌 <曲师名称> (<页数>)', at_sender=True)
+    else:
+        bot.finish(ev, '命令格式为：曲师查歌 <曲师名称> (<页数>)', at_sender=True)
+    if not name:
+        return
+    music_data = mai.total_list.filter(artist_search=name)
+    if not music_data:
+        await bot.finish(ev, f'没有找到这样的乐曲。', at_sender=True)
+    msg = ''
+    page = max(min(page, len(music_data) // SONGS_PER_PAGE + 1), 1)
+    for i, m in enumerate(music_data):
+        if (page - 1) * SONGS_PER_PAGE <= i < page * SONGS_PER_PAGE:
+            msg += f'No.{i + 1} {m.id}. {m.title} {m.artist}\n'
+    msg += f'第{page}页，共{len(music_data) // SONGS_PER_PAGE + 1}页'
+    await bot.finish(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
+
+@sv.on_prefix(['谱师查歌', 'search charter'])
+async def search_dx_song_charter(bot: NoneBot, ev: CQEvent):
+    gid = ev.group_id
+    if gid in guess_dict:
+        await bot.finish(ev, '本群正在猜歌，不要作弊哦~', at_sender=True)
+    args: List[str] = ev.message.extract_plain_text().strip().split()
+    page = 1
+    if len(args) == 1:
+        name: str = args[0]
+    elif len(args) == 2:
+        name: str = args[0]
+        if args[1].isdigit():
+            page = int(args[1])
+        else:
+            bot.finish(ev, '命令格式为：谱师查歌 <谱师名称> (<页数>)', at_sender=True)
+    else:
+        bot.finish(ev, '命令格式为：谱师查歌 <谱师名称> (<页数>)', at_sender=True)
+    if not name:
+        return
+    music_data = mai.total_list.filter(charter_search=name)
+    if not music_data:
+        await bot.finish(ev, f'没有找到这样的乐曲。', at_sender=True)
+    msg = ''
+    page = max(min(page, len(music_data) // SONGS_PER_PAGE + 1), 1)
+    for i, m in enumerate(music_data):
+        if (page - 1) * SONGS_PER_PAGE <= i < page * SONGS_PER_PAGE:
+            diff_charter = zip([diffs[d] for d in m.diff], [m.charts[d].charter for d in m.diff])
+            msg += f'No.{i + 1} {m.id}. {m.title} {" ".join([f"{d}/{c}" for d, c in diff_charter])}\n'
+    msg += f'第{page}页，共{len(music_data) // SONGS_PER_PAGE + 1}页'
     await bot.finish(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
 
 @sv.on_rex(r'^随个((?:dx|sd|标准))?([绿黄红紫白]?)([0-9]+\+?)$')
@@ -675,12 +768,12 @@ async def search_arcade(bot: NoneBot, ev: CQEvent):
     else:
         await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
 
-@sv.on_rex(r'^(.+)?\s?(设置|设定|＝|=|增加|添加|加|＋|\+|减少|降低|减|－|-)\s?([0-9]+)(人|卡)?$')
+@sv.on_rex(r'^(.+)?\s?(设置|设定|＝|=|增加|添加|加|＋|\+|减少|降低|减|－|-)\s?([0-9]+|＋|\+|－|-)(人|卡)?$')
 async def arcade_person(bot: NoneBot, ev: CQEvent):
     match: Match[str] = ev['match']
     gid = ev.group_id
     nickname = ev.sender['nickname']
-    if not match.group(3).isdigit():
+    if not match.group(3).isdigit() and match.group(3) not in ['＋', '+', '－', '-']:
         await bot.finish(ev, '请输入正确的数字', at_sender=True)
 
     msg = arcade_person_data(match, gid, nickname)
