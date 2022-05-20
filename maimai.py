@@ -635,6 +635,7 @@ async def guess_on(bot: NoneBot, ev: CQEvent):
 
     await bot.send(ev, msg, at_sender=True)
 
+"""
 @sv.on_prefix('添加机厅')
 async def add_arcade(bot: NoneBot, ev: CQEvent):
     args: list[str] = ev.message.extract_plain_text().strip().lower().split()
@@ -824,3 +825,5 @@ async def date_change():
         return
     mai.guess()
     log.info('数据更新完毕')
+
+"""
