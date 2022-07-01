@@ -635,7 +635,6 @@ async def guess_on(bot: NoneBot, ev: CQEvent):
 
     await bot.send(ev, msg, at_sender=True)
 
-"""
 @sv.on_prefix('添加机厅')
 async def add_arcade(bot: NoneBot, ev: CQEvent):
     args: list[str] = ev.message.extract_plain_text().strip().lower().split()
@@ -781,7 +780,7 @@ async def arcade_person(bot: NoneBot, ev: CQEvent):
 
     await bot.send(ev, msg, at_sender=True)
 
-@sv.on_suffix(['有多少人', '有几人', '有几卡', '多少人', '多少卡', '几人', 'jr', '几卡'])
+@sv.on_suffix(['jk', '有多少人', '有几人', '有几卡', '多少人', '多少卡', '几人', 'jr', '几卡'])
 async def arcade_query_person(bot: NoneBot, ev: CQEvent):
     gid = ev.group_id
     arg = ev.message.extract_plain_text().strip().lower()
@@ -826,4 +825,3 @@ async def Data_Update():
     mai.guess()
     log.info('数据更新完毕')
 
-"""
