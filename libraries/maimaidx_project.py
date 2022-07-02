@@ -644,7 +644,7 @@ def arcade_person_data(match: Match, gid: int, nickname: str) -> Union[str, bool
     if result:
         msg = ''
         num = match.group(3) if match.group(3).isdigit() else 1
-        if match.group(2) in ['设置', '设定', '＝', '=']:
+        if match.group(2) in ['设置', '设定', '＝', '=', '']:
             msg = modify('modify', 'person_set', {'name': result['name'], 'person': num,
                                                   'time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
                                                   'by': nickname})
