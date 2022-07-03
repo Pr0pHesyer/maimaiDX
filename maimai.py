@@ -768,15 +768,34 @@ async def search_arcade(bot: NoneBot, ev: CQEvent):
     else:
         await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
 
-@sv.on_rex(r'^(.+)?\s?(|设置|设定|＝|=|增加|添加|加|＋|\+|减少|降低|减|－|-)?\s?([0-9]+|＋|\+|－|-)(人|卡)?$')
+@sv.on_rex(r'^(.+)?\s?(设置|设定|＝|=|增加|添加|加|＋|\+|减少|降低|减|－|-)\s?([0-9]+|＋|\+|－|-)(人|卡)?$')
 async def arcade_person(bot: NoneBot, ev: CQEvent):
     match: Match[str] = ev['match']
+    with open('/home/pca/t', 'w') as f:
+        f.write(match.group(0))
     gid = ev.group_id
     nickname = ev.sender['nickname']
     if not match.group(3).isdigit() and match.group(3) not in ['＋', '+', '－', '-']:
         await bot.finish(ev, '请输入正确的数字', at_sender=True)
 
     msg = arcade_person_data(match, gid, nickname)
+
+    await bot.send(ev, msg, at_sender=True)
+
+@sv.on_rex(r'^([0-9]+)(.+)$')
+async def arcade_person_set(bot: NoneBot, ev: CQEvent):
+    match: Match[str] = ev['match']
+    gid = ev.group_id
+    nickname = ev.sender['nickname']
+
+    tmpTxt = match.group(2) + '=' + match.group(1)
+    with open('/home/pca/t', 'w') as f:
+        f.write(tmpTxt)
+    newMatch = re.search('^(.+)?\s?(设置|设定|＝|=|增加|添加|加|＋|\+|减少|降低|减|－|-)\s?([0-9]+|＋|\+|－|-)(人|卡)?$', tmpTxt)
+    if not newMatch.group(3).isdigit() and newMatch.group(3) not in ['＋', '+', '－', '-']:
+        await bot.finish(ev, '请输入正确的数字', at_sender=True)
+
+    msg = arcade_person_data(newMatch, gid, nickname)
 
     await bot.send(ev, msg, at_sender=True)
 
